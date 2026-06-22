@@ -1,0 +1,47 @@
+name: Parking Service CI/CD
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Production release version, for example v1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  ci:
+    name: Parking Service CI
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+    uses: Quickslot-Capstone-Project/Parking-System/.github/workflows/reusable-ci.yml@master
+    with:
+      trigger_event: ${{ github.event_name }}
+      source_sha: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      service_name: parking-service
+      image_name: parking-service
+      helm_values_key: parkingService
+      docker_context: ./parking-service
+      dockerfile_path: ./parking-service/Dockerfile
+      working_directory: ./parking-service
+      sonar_key: Quickslot-Capstone-Project_Parking-System-parking-service
+    secrets: inherit
+
+  release:
+    name: Release Parking Service
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    uses: Quickslot-Capstone-Project/Parking-System/.github/workflows/reusable-release.yml@master
+    with:
+      release_tag: ${{ inputs.release_tag }}
+      service_name: parking-service
+      image_name: parking-service
+      helm_values_key: parkingService
+    secrets: inherit
